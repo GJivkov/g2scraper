@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
@@ -24,13 +24,17 @@ ratings = html.select_one('div[class$="text-center ai-c star-wrapper__desc__rati
 # TODO: remove , and reviews word
 number_of_reviews = html.select_one('li[class$="list--piped__li"]').text 
 
+details_list = html.find_all("div", class_ = 'ml-1')
 
-product_seller_details = html.find_all()
+details_titles = [p.next.text for p in details_list] #To use as column title in Excel
+
+for p in details_list:
+    p.find("div", class_ = 'fw-semibold').decompose()
+
+details_values = [p.text for p in details_list]
+
 
 # TODO: Optional: alternatives and pricing
 
+driver.quit()
 
-
-print(website)
-print(ratings)
-print(number_of_reviews)
