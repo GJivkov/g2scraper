@@ -27,7 +27,7 @@ def get_company_url(company):
     if product_name is not None:
         return (product_name.find('a')['href'])
     else:
-        return ("Search yielded no results")
+        return ("No data available")
     
     driver.quit()
 
@@ -52,12 +52,14 @@ def get_company_data(company_url):
     description = html.select_one('div[itemprop$="description"]').text
     website = html.select_one('a[itemprop$="url"]')['href']
 
-    # TODO: remove out of 5 stars
-    ratings = html.select_one('div[class$="text-center ai-c star-wrapper__desc__rating"]').text
-
-    # TODO: remove , and reviews word
-    number_of_reviews = html.select_one('li[class$="list--piped__li"]').text 
-
+    try: 
+        ratings = html.select_one('div[class$="text-center ai-c star-wrapper__desc__rating"]').text
+        number_of_reviews = html.select_one('li[class$="list--piped__li"]').text 
+    except AttributeError:
+        ratings = "No ratings yet"
+        number_of_reviews = 0
+        
+    
     details_list = html.find_all("div", class_ = 'ml-1')
 
     details_titles = [p.next.text for p in details_list] #To use as column title in Excel
@@ -69,19 +71,30 @@ def get_company_data(company_url):
 
     details = dict(zip(details_titles, details_values))
 
+    seller_details = {'description': description,
+                      'website': website,
+                      'number_of_reviews': number_of_reviews}
+
+    seller_details.update(details)
+    
     driver.quit()
 
-    return {'description': description,
-            'website': website,
-            'number_of_reviews': number_of_reviews,
-            'details': details}
+    return seller_details
 
-company_url = get_company_url("Trello")
+companies_information = []
 
-print(company_url)
+for company in df['NAME'][:3]:
+    company_url = get_company_url(company)
+    
+    print(company_url)
+    
+    if company_url != 'No data available':
+        company_data = get_company_data(company_url)
+        companies_information.append(company_data)
+    else:
+        companies_information.append({'description': 'No data available'})
 
-company_data = get_company_data(company_url)
-
-print(company_data)
 # TODO: Optional: alternatives and pricing
-
+# TODO: Refactoring code
+# TODO: remove out of 5 stars
+# TODO: remove , and reviews word
