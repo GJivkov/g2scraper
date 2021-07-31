@@ -24,12 +24,12 @@ def get_company_url(company):
      
     product_name = html.select_one('div[class$="product-listing__product-name"]')
     
+    driver.quit()
+    
     if product_name is not None:
         return (product_name.find('a')['href'])
     else:
         return ("No data available")
-    
-    driver.quit()
 
 
 df = pd.read_csv('data_scientist_intern_g2_scraper.csv', encoding='utf-8')
@@ -52,6 +52,8 @@ def get_company_data(company_url):
     description = html.select_one('div[itemprop$="description"]').text
     website = html.select_one('a[itemprop$="url"]')['href']
 
+    # TODO: remove out of 5 stars
+    # TODO: remove , and reviews word
     try: 
         ratings = html.select_one('div[class$="text-center ai-c star-wrapper__desc__rating"]').text
         number_of_reviews = html.select_one('li[class$="list--piped__li"]').text 
@@ -81,20 +83,41 @@ def get_company_data(company_url):
 
     return seller_details
 
+def get_alternatives_data(company_url):
+    
+    driver = webdriver.Chrome(CHROMEDRIVER_PATH) 
+    driver.implicitly_wait(10)
+    
+    company_url_alternatives = company_url.replace('reviews', 'competitors/alternatives')
+    
+    driver.get(company_url_alternatives)
+    page = driver.page_source
+    
+    accept_cookies = driver.find_element_by_xpath('//*[@id="new_user_consent"]/input[6]').click()
+    
+    html = BeautifulSoup(page, 'html.parser')
+    
+    alternatives = html.select('div[itemprop$="name"]')
+    alternative_companies = [alt_company.text for alt_company in alternatives]
+    
+    driver.quit()
+    
+    return {'alternative_companies': ', '.join(alternative_companies)}
+    
+
 companies_information = []
 
-for company in df['NAME'][:3]:
+for company in df['NAME'][:2]:
     company_url = get_company_url(company)
-    
-    print(company_url)
     
     if company_url != 'No data available':
         company_data = get_company_data(company_url)
+        alternative_company_data = get_alternatives_data(company_url)
+        
+        company_data.update(alternative_company_data)
         companies_information.append(company_data)
     else:
-        companies_information.append({'description': 'No data available'})
+        companies_information.append({'description': 'No data'})
 
+print(pd.DataFrame(companies_information))
 # TODO: Optional: alternatives and pricing
-# TODO: Refactoring code
-# TODO: remove out of 5 stars
-# TODO: remove , and reviews word
