@@ -26,6 +26,7 @@ def start_driver_and_get_html(url):
     return html
 
 def get_company_url(company):
+    
     company = company.replace(" ", "+")
     
     full_url = QUERY_URL + company
@@ -33,32 +34,34 @@ def get_company_url(company):
     html = start_driver_and_get_html(full_url)
      
     product_name = html.select_one('div[class$="product-listing__product-name"]')
-    print(product_name)
     
     if product_name is not None:
         return (product_name.find('a')['href'])
     else:
         return ("No data available")
 
-
 def get_company_data(company_url):
 
     html = start_driver_and_get_html(company_url)
 
-    description = html.select_one('div[itemprop$="description"]').text
     website = html.select_one('a[itemprop$="url"]')['href']
+
+    try:
+        description = html.select_one('div[itemprop$="description"]').text
+    except AttributeError:
+        description = "No description available"
 
     try: 
         ratings = html.select_one('div[class$="text-center ai-c star-wrapper__desc__rating"]').text
         number_of_reviews = html.select_one('li[class$="list--piped__li"]').text 
     except AttributeError:
-        ratings = "No ratings yet"
+        ratings = "No ratings available"
         number_of_reviews = 0
         
     
     details_list = html.find_all("div", class_ = 'ml-1')
 
-    details_titles = [p.next.text for p in details_list] #To use as column title in Excel
+    details_titles = [p.next.text for p in details_list]
     
     details_values = []
     
@@ -108,16 +111,21 @@ df = pd.read_csv('data_scientist_intern_g2_scraper.csv', encoding='utf-8')
 df['NAME'].replace(r'\(.*?\)', '', regex=True, inplace=True)
 df['NAME'].replace(r"^ +| +$", r"", regex=True, inplace=True) 
 
-for ind, company in df[:20].iterrows():
+for ind, company in df.iterrows():
     start = time.time()
     
     company_url = get_company_url(company['NAME'])
     
     if company_url != 'No data available':
-        company_data = get_company_data(company_url)
-        
-        csv_url = urlparse(company['WEBSITE'])
-        scraped_url = urlparse(company_data.get('website'))
+        try:
+            company_data = get_company_data(company_url)
+            
+            csv_url = urlparse(company['WEBSITE'])
+            scraped_url = urlparse(company_data.get('website'))
+
+        except NoSuchElementException:
+            scraped_url = 'Site blocked'
+            break
           
         if csv_url.netloc == scraped_url.netloc:
             alternative_company_data = get_alternatives_data(company_url)
@@ -128,6 +136,11 @@ for ind, company in df[:20].iterrows():
     else:
         companies_information.append({'description': 'No data'})
     
+    time.sleep(5)
+
+    if (ind + 1 % 100 == 0):
+        time.sleep(600)
+    
     end = time.time()
     
     print(f'Fetched {company["NAME"]} data in {(end - start):.2f}')
@@ -137,4 +150,5 @@ scraped_data = pd.DataFrame(companies_information)
 scraped_data['Website'] = scraped_data['Website'].apply(lambda x: get_base_url(x) if isinstance(x, str) else x)
 scraped_data[['Twitter', 'Twitter followers']] = scraped_data['Twitter'].str.split(r'(?<=[a-zA-Z])(?=[0-9])', 1, expand=True)
 
-# TODO: Optional: pricing (blocked)
+final_data = df.join(scraped_data)
+final_data.to_csv('data_scientist_intern_g2_scraper.csv')
