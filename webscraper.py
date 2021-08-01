@@ -1,8 +1,10 @@
 import pandas as pd
 import regex as re
+import time
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException
+from urllib.parse import urlparse
 
 CHROMEDRIVER_PATH = "chromedriver.exe"
 QUERY_URL = "https://www.g2.com/search?utf8=%E2%9C%93&query="
@@ -93,8 +95,12 @@ def get_alternatives_data(company_url):
     alternative_companies = [alt_company.text for alt_company in alternatives]
     
     return {'alternative_companies': ', '.join(alternative_companies)}
-    
 
+def get_base_url(url):
+    split_url = url.split('/')
+    new_url = split_url[0] + split_url[2] + '/'
+    return new_url
+    
 companies_information = []
 
 df = pd.read_csv('data_scientist_intern_g2_scraper.csv', encoding='utf-8')
@@ -102,19 +108,33 @@ df = pd.read_csv('data_scientist_intern_g2_scraper.csv', encoding='utf-8')
 df['NAME'].replace(r'\(.*?\)', '', regex=True, inplace=True)
 df['NAME'].replace(r"^ +| +$", r"", regex=True, inplace=True) 
 
-for company in df['NAME'][:5]:
-
-    print(f'Fetching {company} data')
-
-    company_url = get_company_url(company)
-
+for ind, company in df[:20].iterrows():
+    start = time.time()
+    
+    company_url = get_company_url(company['NAME'])
+    
     if company_url != 'No data available':
         company_data = get_company_data(company_url)
-        alternative_company_data = get_alternatives_data(company_url)
         
-        company_data.update(alternative_company_data)
-        companies_information.append(company_data)
+        csv_url = urlparse(company['WEBSITE'])
+        scraped_url = urlparse(company_data.get('website'))
+          
+        if csv_url.netloc == scraped_url.netloc:
+            alternative_company_data = get_alternatives_data(company_url)
+            company_data.update(alternative_company_data)
+            companies_information.append(company_data)
+        else:
+            companies_information.append({'description': 'No match'})
     else:
         companies_information.append({'description': 'No data'})
+    
+    end = time.time()
+    
+    print(f'Fetched {company["NAME"]} data in {(end - start):.2f}')
 
-# TODO: Optional: alternatives and pricing
+scraped_data = pd.DataFrame(companies_information)
+
+scraped_data['Website'] = scraped_data['Website'].apply(lambda x: get_base_url(x) if isinstance(x, str) else x)
+scraped_data[['Twitter', 'Twitter followers']] = scraped_data['Twitter'].str.split(r'(?<=[a-zA-Z])(?=[0-9])', 1, expand=True)
+
+# TODO: Optional: pricing (blocked)
