@@ -21,3 +21,30 @@ Another type of driver can be used, such as Mozzila Firefox, Edge and etc.
 - A lot of missing data: I thought that this is weird, but I checked manually for a few random companies and I also couldn't find information about them.
 
 ## Going through the code logic:
+
+In [webscraper.py](../blob/master/webscraper.py) you can find all of the code. 
+
+It starts with imports of:
+* pandas ([docs](https://pandas.pydata.org/docs/))
+* regex ([docs](https://docs.python.org/3/library/re.html))
+* time ([docs](https://docs.python.org/3/library/time.html))
+* beautifulsoup ([docs](https://www.crummy.com/software/BeautifulSoup/bs4/doc/))
+* selenium ([docs](https://selenium-python.readthedocs.io/))
+* urlparse ([docs](https://docs.python.org/3/library/urllib.parse.html))
+
+It consists of 5 functions:
+
++ start_driver_and_get_html(url) - Initialize the webdriver, load the page, extract the html source, accept cookies, parse the html, close driver and returns html.
++ get_company_url(company) - Replace spaces in company name with '+' (to work for the query url), make up the full url and extract hyperlink of the company (g2 site url)
++ get_company_data(company_url) - Extract company website, description, ratings, number of reviews, product and seller details and returns dictionary with everything available.
++ get_alternatives_data(company_url) - Gather alternative companies (top 20)
++ get_base_url(url) - Extract base url in order to compare later on.
+
+## Main logic:
+
+We load the csv data, then we remove brackets (and everything inside them) from the company names, we remove the empty space at the end. Then, we start iterating over the companies 1 by 1, for each iteration we start a timer, extract company url - if there is no data, append "No data" and go to the next company, otherwise if there is data, we check if the company website matches the scraped company website. If there is a match, we scrape the alternatives and update the company data, otherwise we append "No match". We stop the timer and print how much time it took. After we collect the data, we store only the base url (because some website have more specific urls provided) and we split the twitter data into 2 columns Twitter (handle) and Twitter followers.
+
+---
+**NOTE** 
+Currently the scraper goes through only 30 companies. If you need that changed, either change the number for the slicing or remove it altogether.
+---
