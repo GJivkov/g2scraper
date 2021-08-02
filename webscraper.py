@@ -3,7 +3,6 @@ import regex as re
 import time
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
 from urllib.parse import urlparse
 
 CHROMEDRIVER_PATH = "chromedriver.exe"
