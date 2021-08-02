@@ -46,6 +46,10 @@ We load the csv data, then we remove brackets (and everything inside them) from 
 - A lot of missing data: I thought that this is weird, but I checked manually for a few random companies and I also couldn't find information about them.
 
 ---
-**NOTE** 
+### NOTES
+
 Currently the scraper goes through only 30 companies. If you need that changed, either change the number for the slicing or remove it altogether.
----
+
+I didn't scrape "Pricing", because when I try to open it with the webdriver I get instantly blocked, so I can't check if it works. Otherwise the implementation seems pretty straightforward.
+
+I am not sure if the 'description' I scraped is the correct one.
