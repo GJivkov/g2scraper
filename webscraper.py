@@ -111,21 +111,16 @@ df = pd.read_csv('data_scientist_intern_g2_scraper.csv', encoding='utf-8')
 df['NAME'].replace(r'\(.*?\)', '', regex=True, inplace=True)
 df['NAME'].replace(r"^ +| +$", r"", regex=True, inplace=True) 
 
-for ind, company in df.iterrows():
+for ind, company in df[:30].iterrows():
     start = time.time()
     
     company_url = get_company_url(company['NAME'])
     
     if company_url != 'No data available':
-        try:
-            company_data = get_company_data(company_url)
+        company_data = get_company_data(company_url)
             
-            csv_url = urlparse(company['WEBSITE'])
-            scraped_url = urlparse(company_data.get('website'))
-
-        except NoSuchElementException:
-            scraped_url = 'Site blocked'
-            break
+        csv_url = urlparse(company['WEBSITE'])
+        scraped_url = urlparse(company_data.get('website'))
           
         if csv_url.netloc == scraped_url.netloc:
             alternative_company_data = get_alternatives_data(company_url)
@@ -138,6 +133,7 @@ for ind, company in df.iterrows():
     
     time.sleep(5)
 
+    # As a possible measure to bypass the blocking
     if (ind + 1 % 100 == 0):
         time.sleep(600)
     
@@ -151,4 +147,4 @@ scraped_data['Website'] = scraped_data['Website'].apply(lambda x: get_base_url(x
 scraped_data[['Twitter', 'Twitter followers']] = scraped_data['Twitter'].str.split(r'(?<=[a-zA-Z])(?=[0-9])', 1, expand=True)
 
 final_data = df.join(scraped_data)
-final_data.to_csv('data_scientist_intern_g2_scraper.csv')
+final_data.to_csv('data_scientist_intern_g2_scraper_full.csv')
